@@ -15,8 +15,52 @@ public class Ball{
     Plansza plansza;
     ExecutorService cachExec = newCachedThreadPool();
 
-    public Ball(Plansza plansza){
-        this.plansza = plansza;
+	interface ILogicStep {
+		void runStep(PoleNaPlanszy pole, int X, int Y);
+	}
+	
+	Map<String, ILogicStep> ballSteps = new HashMap<String, ILogicStep>();
+
+    public Ball(Plansza planszaParam){
+    
+    		ballSteps.put("falsetrue", new ILogicStep() {
+			@Override
+			public void runStep(PoleNaPlanszy pole, int x, int y) {
+				pole.setJestNaNimPilkaBadzNie(true);
+				cachExec.execute(plansza.getPole(X, Y));
+				plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
+				pole.getObiektJedzony().setZjedzonyBadzNie(true);
+				Y = y;
+				X = x;
+				wynik = wynik + 1;
+			}
+		});
+		
+		ballSteps.put("falsefalse", new ILogicStep() { 
+			@Override
+			public void runStep(PoleNaPlanszy pole, int x, int y) {
+				plansza.getPole(X, Y).setZajeteBadzNie(false);
+				pole.setJestNaNimPilkaBadzNie(true);
+				plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
+				cachExec.execute(plansza.getPole(X, Y));
+				Y = y;
+				X = x;
+			}
+		});
+
+		ballSteps.put("truefalse", new ILogicStep() {
+			@Override
+			public void runStep(PoleNaPlanszy pole, int x, int y) {
+			}
+		});
+
+		ballSteps.put("truetrue", new ILogicStep() {
+			@Override
+			public void runStep(PoleNaPlanszy pole, int x, int y) {
+			}
+		});
+
+        this.plansza = planszaParam;
         plansza.getPole(this.X, this.Y).setJestNaNimPilkaBadzNie(true);
     }
 
@@ -44,87 +88,28 @@ public class Ball{
         return Y;
     }
 
-    public void wGore(){
-        try {
-            PoleNaPlanszy temp = plansza.getPole(X, Y).getGora();
-            if(temp.isZajeteBadzNie() == false){
-                if(temp.getObiektJedzony() != null){
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    temp.getObiektJedzony().setZjedzonyBadzNie(true);
-                    Y = Y + 1;
-                    wynik = wynik + 1;
-                }
-                else {
-                    plansza.getPole(X, Y).setZajeteBadzNie(false);
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    Y = Y + 1;
-                }
-            }
-            else {
-                System.out.println("Pole jest zablokowane, badz koniec planszy!");
-            }
-        }
-        catch (NullPointerException e){
-            System.out.println("Pole jest zablokowane, badz koniec planszy!");
-        }
-    }
+    public void wGore() {
+		try {
+			PoleNaPlanszy temp = plansza.getPole(X, Y).getGora();
+			ballSteps.get(temp.isZajeteBadzNie() + "" + temp.getObiektJedzony() != null).runStep(temp, X, Y+1); 
+		} catch (NullPointerException e) {
+			System.out.println("Pole jest zablokowane, badz koniec planszy!");
+		}
+	}
 
-    public void wDol(){
-        try {
-            PoleNaPlanszy temp = plansza.getPole(X, Y).getDol();
-            if(temp.isZajeteBadzNie() == false){
-                if(temp.getObiektJedzony() != null){
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    temp.getObiektJedzony().setZjedzonyBadzNie(true);
-                    Y = Y - 1;
-                    wynik = wynik + 1;
-                }
-                else {
-                    plansza.getPole(X, Y).setZajeteBadzNie(false);
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    Y = Y - 1;
-                }
-            }
-            else {
-                System.out.println("Pole jest zablokowane!");
-            }
-        }
-        catch (NullPointerException e){
-            System.out.println("Koniec planszy!");
-        }
-    }
-
+	public void wDol() {
+		try {
+			PoleNaPlanszy temp = plansza.getPole(X, Y).getDol();
+			ballSteps.get(temp.isZajeteBadzNie() + "" + temp.getObiektJedzony() != null).runStep(temp, X, Y-1); 
+		} catch (NullPointerException e) {
+			System.out.println("Koniec planszy!");
+		}
+	}
+    
     public void naLewo(){
         try {
             PoleNaPlanszy temp = plansza.getPole(X, Y).getLewy();
-            if(temp.isZajeteBadzNie() == false){
-                if(temp.getObiektJedzony() != null){
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    temp.getObiektJedzony().setZjedzonyBadzNie(true);
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    X = X - 1;
-                    wynik = wynik + 1;
-                }
-                else {
-                    plansza.getPole(X, Y).setZajeteBadzNie(false);
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    X = X - 1;
-                }
-            }
-            else {
-                System.out.println("Pole jest zablokowane, badz koniec planszy!");
-            }
+			ballSteps.get(temp.isZajeteBadzNie() + "" + temp.getObiektJedzony() != null).runStep(temp, X-1, Y); 
         }
         catch (NullPointerException e){
             System.out.println("Pole jest zablokowane, badz koniec planszy!");
@@ -134,26 +119,7 @@ public class Ball{
     public void naPrawo(){
         try {
             PoleNaPlanszy temp = plansza.getPole(X, Y).getPrawy();
-            if(temp.isZajeteBadzNie() == false){
-                if(temp.getObiektJedzony() != null){
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    temp.getObiektJedzony().setZjedzonyBadzNie(true);
-                    X = X + 1;
-                    wynik = wynik + 1;
-                }
-                else {
-                    plansza.getPole(X, Y).setZajeteBadzNie(false);
-                    temp.setJestNaNimPilkaBadzNie(true);
-                    plansza.getPole(X, Y).setJestNaNimPilkaBadzNie(false);
-                    cachExec.execute(plansza.getPole(X, Y));
-                    X = X + 1;
-                }
-            }
-            else {
-                System.out.println("Pole jest zablokowane, badz koniec planszy!");
-            }
+			ballSteps.get(temp.isZajeteBadzNie() + "" + temp.getObiektJedzony() != null).runStep(temp, X+1, Y); 
         }
         catch (NullPointerException e){
             System.out.println("Pole jest zablokowane, badz koniec planszy!");
